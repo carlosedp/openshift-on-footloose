@@ -1,6 +1,7 @@
 cluster:
   name: cluster
-  privateKey: ~/.ssh/id_rsa
+  # privateKey: ~/.ssh/id_rsa # Use existing key. Depends on https://github.com/weaveworks/footloose/pull/116
+  privateKey: cluster-key
 machines:
 - count: 1
   spec:
