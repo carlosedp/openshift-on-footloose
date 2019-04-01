@@ -1,0 +1,22 @@
+cluster:
+  name: cluster
+  privateKey: ~/.ssh/id_rsa
+machines:
+- count: 1
+  spec:
+    image: quay.io/footloose/centos7:0.3.0
+    name: node%d
+    privileged: true
+    portMappings:
+    - containerPort: 22
+    - containerPort: 8443
+      hostPort: 8443
+    - containerPort: 53
+      hostPort: 53
+    - containerPort: 443
+      hostPort: 443
+    - containerPort: 80
+      hostPort: 80
+    volumes:
+    - type: volume
+      destination: /var/lib/docker

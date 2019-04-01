@@ -1,0 +1,6 @@
+[all:vars]
+ansible_connection=ssh
+ansible_ssh_user=root
+
+[all]
+cluster-node0 ansible_connection=docker

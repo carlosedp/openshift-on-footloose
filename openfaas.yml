@@ -1,0 +1,81 @@
+---
+- name: Install OpenFaas on Openshift in Footloose
+  hosts: all
+  gather_facts: false
+
+  vars:
+
+  pre_tasks:
+
+  tasks:
+
+  - name: Create OpenFaas projects
+    command: "oc adm new-project {{ item }}"
+    with_items:
+      - openfaas
+      - openfaas-fn
+
+  - name: Apply OpenFaas manifests
+    command: "oc apply -f {{ item }}"
+    with_items:
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/alertmanager-cfg.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/alertmanager-dep.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/alertmanager-svc.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/gateway-dep.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/gateway-svc.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/nats-dep.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/nats-svc.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/prometheus-cfg.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/prometheus-dep.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/prometheus-rbac.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/prometheus-svc.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/queueworker-dep.yml"
+      - "https://raw.githubusercontent.com/openfaas/faas-netes/master/yaml/rbac.yml"
+
+
+  - name: Create OpenFaas route
+    copy:
+      dest: "/root/route.yaml"
+      content: |
+        apiVersion: route.openshift.io/v1
+        kind: Route
+        metadata:
+          name: gateway
+          namespace: openfaas
+          labels:
+            app: gateway
+        spec:
+          host: openfaas.127.0.0.1.nip.io
+          tls:
+            insecureEdgeTerminationPolicy: Redirect
+            termination: edge
+          to:
+            kind: Service
+            name: gateway
+            weight: 100
+          wildcardPolicy: None
+      mode: 0644
+    tags:
+      - route
+
+  - name: Apply OpenFaas route
+    command: "oc apply -f {{ item }}"
+    with_items:
+      - /root/route.yaml
+    tags:
+      - route
+
+  - name: Test deploy
+    debug:
+      msg:
+        - "Open the GUI on: https://openfaas.127.0.0.1.nip.io \n
+           \n
+           Test your deployment with: \n
+           \n
+           export OPENFAAS_URL=https://openfaas.127.0.0.1.nip.io \n
+           faas-cli store deploy --tls-no-verify certinfo \n
+           echo -n www.openfaas.com | faas-cli invoke --tls-no-verify certinfo"
+    tags:
+      - info
+
+
