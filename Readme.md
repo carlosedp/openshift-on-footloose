@@ -1,6 +1,6 @@
 # Running Openshift on Footloose
 
-This project allows one to deploy OpenShift on Docker containers inside a Docker container itself.
+This project allows one to deploy OpenShift on Docker containers inside a Docker container itself. This was inspired by [Alex Ellis post](https://blog.alexellis.io/openshift-in-a-footloose-container/) describing the steps to deploy OpenShift and install OpenFaaS. 
 
 The deployment is done using Footloose, a project from Weaveworks that aims to be *Containers that look like Virtual Machines*.
 
