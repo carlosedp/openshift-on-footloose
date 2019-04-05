@@ -93,9 +93,6 @@
       state: started
       enabled: true
 
-  - name: Ensure handlers are notified now to avoid firewall conflicts.
-    meta: flush_handlers
-
   - name: Creates Docker directory
     file:
       path: /etc/docker

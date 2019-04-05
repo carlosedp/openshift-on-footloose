@@ -1,8 +1,8 @@
 # Running Openshift on Footloose
 
-This project allows one to deploy OpenShift on Docker containers inside a Docker container itself. This was inspired by [Alex Ellis post](https://blog.alexellis.io/openshift-in-a-footloose-container/) describing the steps to deploy OpenShift and install OpenFaaS. 
+This project allows one to deploy OpenShift inside a Docker container, also known as DinD or Docker in Docker. This was inspired by [Alex Ellis post](https://blog.alexellis.io/openshift-in-a-footloose-container/) describing the steps to deploy OpenShift and install OpenFaaS.
 
-The deployment is done using Footloose, a project from Weaveworks that aims to be *Containers that look like Virtual Machines*.
+The deployment is done using Footloose, a project from Weaveworks that aims to be *Containers that look like Virtual Machines* and is done completely by an Ansible playbook. You can deploy and use most features from Openshift like using the catalog, deploying Source2Image applications and more.
 
 There is also a convenience playbook to install [OpenFaaS](https://www.openfaas.com/) on the newly deployed OpenShift.
 
@@ -11,6 +11,43 @@ There is also a convenience playbook to install [OpenFaaS](https://www.openfaas.
 * [Docker](https://www.docker.com/)
 * [Footloose](https://github.com/weaveworks/footloose)
 * [Ansible](https://www.ansible.com/)
+
+### Mac
+
+```bash
+# Install Homebrew package manager (if you don't have it yet)
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+# Install Docker
+brew cask install docker
+# Start Docker
+open /Applications/Docker.app
+
+# Install Footloose and Ansible
+brew install ansible sshpass
+brew tap weaveworks/tap
+brew install weaveworks/tap/footloose
+```
+
+### Linux
+
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com/ | sh
+
+# Install Ansible
+sudo dnf install ansible # or
+sudo yum install ansible # or
+echo "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" >> /etc/apt/sources.list
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+sudo apt-get update
+sudo apt-get install ansible
+
+# Install Footloose
+curl -Lo footloose https://github.com/weaveworks/footloose/releases/download/0.3.0/footloose-0.3.0-linux-x86_64
+chmod +x footloose
+sudo mv footloose /usr/local/bin/
+```
 
 ## Running
 
