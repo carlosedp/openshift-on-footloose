@@ -11,6 +11,7 @@ There is also a convenience playbook to install [OpenFaaS](https://www.openfaas.
 * [Docker](https://www.docker.com/)
 * [Footloose](https://github.com/weaveworks/footloose)
 * [Ansible](https://www.ansible.com/)
+* [OpenShift](https://docs.openshift.com/container-platform/3.7/cli_reference/get_started_cli.html#installing-the-cli) and/or [Kubernetes](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl) CLI tools
 
 ### Mac
 
@@ -23,8 +24,8 @@ brew cask install docker
 # Start Docker
 open /Applications/Docker.app
 
-# Install Footloose and Ansible
-brew install ansible sshpass
+# Install Footloose, Ansible and Openshift/Kubernetes CLI
+brew install ansible sshpass kubernetes-cli openshift-cli
 brew tap weaveworks/tap
 brew install weaveworks/tap/footloose
 ```
@@ -59,11 +60,26 @@ To deploy OpenFaas into the cluster, run:
 
 `ansible-playbook openfaas.yml`
 
-Openshift console will be available on [`https://127.0.0.1.nip.io:8443/console`](https://127.0.0.1.nip.io:8443/console) and OpenFaas on [`https://openfaas.127.0.0.1.nip.io`](https://openfaas.127.0.0.1.nip.io).
+Openshift console will be available on [https://127.0.0.1.nip.io:8443/console](https://127.0.0.1.nip.io:8443/console) and OpenFaas on [https://openfaas.127.0.0.1.nip.io](https://openfaas.127.0.0.1.nip.io).
 
 Log-in with user *admin / any password* to access cluster as cluster-admin or user *developer / any password*.
 
+In the command line, the cluster configuration file will be available on your local directory. You can use OpenShift `oc` or Kubernetes `kubectl` to access the cluster just do:
+
+```bash
+mkdir -p $HOME/.kube
+cp openshift-config $HOME/.kube/config
+
+oc login -u system:admin
+oc get nodes
+oc get pods --all-namespaces
+#or
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
 You can deploy any application from the catalog and create routes that will be exposed using [nip.io](http://nip.io/) to avoid fiddling with `/etc/hosts`.
+
 
 ## OpenFaaS Demo
 
