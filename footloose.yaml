@@ -1,7 +1,7 @@
 cluster:
-  name: cluster
+  name: openshift
   # privateKey: ~/.ssh/id_rsa # Use existing key. Depends on https://github.com/weaveworks/footloose/pull/116
-  privateKey: cluster-key
+  privateKey: openshift-key
 machines:
 - count: 1
   spec:
@@ -20,4 +20,5 @@ machines:
       hostPort: 80
     volumes:
     - type: volume
+      source: openshift-footloose
       destination: /var/lib/docker

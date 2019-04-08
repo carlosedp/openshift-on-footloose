@@ -103,3 +103,9 @@ oc logs -f bc/nodejs-ex
 
 oc expose svc/nodejs-ex --hostname=nodejs-ex.127.0.0.1.nip.io
 ```
+
+## Remove the container and data
+
+```bash
+ansible-playbook teardown.yml
+```

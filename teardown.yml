@@ -1,0 +1,17 @@
+---
+- name: Teardown Openshift in Footloose container and data
+  hosts: all
+
+  tasks:
+
+  - name: Delete Footloose container VMs
+    command: footloose delete
+    delegate_to: 127.0.0.1
+    tags:
+      - teardown
+
+  - name: Delete Footloose container Volume
+    command: docker volume rm openshift-footloose
+    delegate_to: 127.0.0.1
+    tags:
+      - teardown
