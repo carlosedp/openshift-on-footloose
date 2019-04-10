@@ -45,20 +45,57 @@
       - local
       - base
 
-  - name: Install python2 for Ansible
-    raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python2.7 python-minimal python-setuptools)"
+  - name: Install python2 for Ansible (Centos)
+    raw: test -e /usr/bin/python || (yum -y update && yum install -y python) || (apt -y update && apt install -y python-minimal)
     register: output
     changed_when: output.stdout != ""
+    tags:
+      - base
 
   - name: Gathering Facts
     setup:
 
   tasks:
 
+  - name: Get docker container IP
+    command: 'docker inspect {{inventory_hostname}} -f {% raw %}"{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}"{% endraw %}'
+    register: container_ip
+    delegate_to: 127.0.0.1
+    tags:
+      - base
+      - local
+
   - name: Upgrade all packages
     package:
       name: "*"
       state: latest
+    tags:
+      - base
+
+  - name: Install dnsmasq
+    package:
+      name:
+      - dnsmasq
+      state: latest
+    tags:
+      - base
+
+  - name: Configure dnsmasq
+    copy:
+      dest: "/etc/dnsmasq.conf"
+      content: |
+        domain-needed
+        bogus-priv
+        listen-address=127.0.0.1
+        listen-address={{container_ip.stdout}}
+        bind-interfaces
+        server=1.1.1.1
+        server=8.8.8.8
+        address=/127.0.0.1.nip.io/{{container_ip.stdout}}
+      mode: 0644
+    notify: restart dnsmasq
+    tags:
+      - base
 
   - name: Ensure old versions of Docker are not installed.
     package:
@@ -114,19 +151,25 @@
   - name: Flush handlers to restart Docker
     meta: flush_handlers
 
+  - name: Check if oc binary exists
+    stat:
+      path: /usr/local/bin/oc
+    register: oc
+
   - name: Download and unpack OpenShift utility
     unarchive:
       src: "{{ openshift_client_tools }}"
       dest: /usr/local/bin
       remote_src: yes
       extra_opts: [--strip-components=1]
+    when: oc.stat.executable is not defined
 
   - name: Create startup script
     copy:
       dest: "/root/oc-up.sh"
       content: |
         #!/usr/bin/env bash
-        oc cluster up --skip-registry-check=true --public-hostname=127.0.0.1.nip.io
+        oc cluster up --skip-registry-check=true --public-hostname 127.0.0.1.nip.io --routing-suffix 127.0.0.1.nip.io
       mode: 0744
 
   - name: Start the cluster
@@ -141,6 +184,18 @@
 
   - name: Add cluster-admin permissions to admin user
     command: "oc adm policy add-cluster-role-to-user cluster-admin admin"
+
+  - name: Label localhost node as master
+    command: "oc label node localhost node-role.kubernetes.io/master= --overwrite"
+
+  - name: Change upstream DNS config
+    lineinfile:
+      path: /openshift.local.clusterup/kubedns/node-config.yaml
+      regexp: '^dnsNameservers:'
+      line: 'dnsNameservers: ["{{container_ip.stdout}}"]'
+
+  - name: Restart DNS pod after change
+    command: "oc get pods -n kube-dns -o name | xargs oc delete"
 
   - name: Cluster login info
     debug:
@@ -175,4 +230,9 @@
     - name: restart docker
       service:
         name: docker
+        state: restarted
+
+    - name: restart dnsmasq
+      service:
+        name: dnsmasq
         state: restarted
