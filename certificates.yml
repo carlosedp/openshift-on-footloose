@@ -1,0 +1,21 @@
+- name: Create server certificates
+  command: 'oc adm ca create-server-cert --signer-cert={{oc_config_dir}}/kube-apiserver/ca.crt --signer-key={{oc_config_dir}}/kube-apiserver/ca.key --signer-serial={{oc_config_dir}}/kube-apiserver/ca.serial.txt --hostnames=kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.default.svc.cluster.local,localhost,openshift,openshift.default,openshift.default.svc,openshift.default.svc.cluster,openshift.default.svc.cluster.local,127.0.0.1,172.17.0.1,172.30.0.1,192.168.65.2,{{additional_ips}} --cert={{cert_dir}}/server.crt --key={{cert_dir}}/server.key'
+
+- name: Replace node certificates
+  copy:
+    remote_src: True
+    src: '{{cert_dir}}/{{item}}'
+    dest: '{{oc_config_dir}}/node/{{item}}'
+  with_items:
+    - server.crt
+    - server.key
+
+- name: Replace kubedns certificates
+  copy:
+    remote_src: True
+    src: '{{cert_dir}}/{{item}}'
+    dest: '{{oc_config_dir}}/kubedns/{{item}}'
+  with_items:
+    - server.crt
+    - server.key
+

@@ -8,6 +8,10 @@
     docker_package: "docker-{{ docker_edition }}"
     docker_yum_repo_url: https://download.docker.com/linux/{{ (ansible_distribution == "Fedora") | ternary("fedora","centos") }}/docker-{{ docker_edition }}.repo
     openshift_client_tools: https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz
+    oc_config_dir: /openshift.local.clusterup
+    public_hostname: 127.0.0.1.nip.io
+    cert_dir: /root/certs
+    additional_ips: '{{public_hostname}},172.17.0.2'
 
   pre_tasks:
 
@@ -20,6 +24,7 @@
     tags:
       - local
       - base
+      - step1
 
   - name: Footloose installed
     fail:
@@ -29,6 +34,7 @@
     tags:
       - local
       - base
+      - step1
 
   - name: Exit playbook
     meta: end_play
@@ -37,6 +43,7 @@
     tags:
       - local
       - base
+      - step1
 
   - name: Create Footloose container VMs
     command: footloose create
@@ -44,6 +51,7 @@
     tags:
       - local
       - base
+      - step1
 
   - name: Install python2 for Ansible (Centos)
     raw: test -e /usr/bin/python || (yum -y update && yum install -y python) || (apt -y update && apt install -y python-minimal)
@@ -51,10 +59,13 @@
     changed_when: output.stdout != ""
     tags:
       - base
+      - step1
 
   - name: Gathering Facts
     setup:
-
+    tags:
+      - base
+      - step1
   tasks:
 
   - name: Get docker container IP
@@ -64,6 +75,7 @@
     tags:
       - base
       - local
+      - step1
 
   - name: Upgrade all packages
     package:
@@ -71,6 +83,7 @@
       state: latest
     tags:
       - base
+      - step1
 
   - name: Install dnsmasq
     package:
@@ -79,6 +92,7 @@
       state: latest
     tags:
       - base
+      - step1
 
   - name: Configure dnsmasq
     copy:
@@ -91,11 +105,12 @@
         bind-interfaces
         server=1.1.1.1
         server=8.8.8.8
-        address=/127.0.0.1.nip.io/{{container_ip.stdout}}
+        address=/{{public_hostname}}/{{container_ip.stdout}}
       mode: 0644
     notify: restart dnsmasq
     tags:
       - base
+      - step1
 
   - name: Ensure old versions of Docker are not installed.
     package:
@@ -104,11 +119,15 @@
       - docker-common
       - docker-engine
       state: absent
+    tags:
+      - step1
 
   - name: Add Docker GPG key.
     rpm_key:
       key: https://download.docker.com/linux/centos/gpg
       state: present
+    tags:
+      - step1
 
   - name: Add Docker repository.
     get_url:
@@ -117,23 +136,34 @@
       owner: root
       group: root
       mode: 0644
+    tags:
+      - step1
 
   - name: Install Docker.
     package:
       name: "{{ docker_package }}"
       state: present
     notify: restart docker
+    tags:
+      - step1
 
-  - name: Ensure Docker is started and enabled at boot.
+  - name: Ensure services are started and enabled at boot.
     service:
-      name: docker
+      name: '{{item}}'
       state: started
       enabled: true
+    with_items:
+      - docker
+      - dnsmasq
+    tags:
+      - step1
 
   - name: Creates Docker directory
     file:
       path: /etc/docker
       state: directory
+    tags:
+      - step1
 
   - name: Configure Docker insecure registry
     copy:
@@ -147,14 +177,20 @@
         }
       mode: 0644
     notify: restart docker
+    tags:
+      - step1
 
   - name: Flush handlers to restart Docker
     meta: flush_handlers
+    tags:
+      - step1
 
   - name: Check if oc binary exists
     stat:
       path: /usr/local/bin/oc
     register: oc
+    tags:
+      - step1
 
   - name: Download and unpack OpenShift utility
     unarchive:
@@ -163,54 +199,85 @@
       remote_src: yes
       extra_opts: [--strip-components=1]
     when: oc.stat.executable is not defined
+    tags:
+      - step1
 
   - name: Create startup script
     copy:
       dest: "/root/oc-up.sh"
       content: |
         #!/usr/bin/env bash
-        oc cluster up --skip-registry-check=true --public-hostname 127.0.0.1.nip.io --routing-suffix 127.0.0.1.nip.io
+        oc cluster up --skip-registry-check=true --public-hostname {{public_hostname}} --routing-suffix {{public_hostname}} --base-dir={{oc_config_dir}}
       mode: 0744
+    tags:
+      - step1
+
+  - name: Generate cluster config
+    command: "oc cluster up --skip-registry-check=true --public-hostname {{public_hostname}} --routing-suffix {{public_hostname}} --base-dir={{oc_config_dir}} --write-config=true"
+    tags:
+      - step1
+
+  - name: Generate and replace certificates
+    include_tasks: certificates.yml
+    tags:
+      - step1
 
   - name: Start the cluster
     command: "$HOME/oc-up.sh"
     register: cluster_up
+    tags:
+      - step2
 
   - name: Add optional features
-    command: "oc cluster add automation-service-broker service-catalog template-service-broker"
+    command: "oc cluster add automation-service-broker service-catalog template-service-broker --base-dir=/{{oc_config_dir}}"
+    tags:
+      - step2
 
   - name: Login into cluster
     command: "oc login -u system:admin"
+    tags:
+      - step2
 
   - name: Add cluster-admin permissions to admin user
     command: "oc adm policy add-cluster-role-to-user cluster-admin admin"
+    tags:
+      - step2
 
   - name: Label localhost node as master
     command: "oc label node localhost node-role.kubernetes.io/master= --overwrite"
+    tags:
+      - step2
 
   - name: Change upstream DNS config
     lineinfile:
-      path: /openshift.local.clusterup/kubedns/node-config.yaml
+      path: '{{oc_config_dir}}/kubedns/node-config.yaml'
       regexp: '^dnsNameservers:'
-      line: 'dnsNameservers: ["{{container_ip.stdout}}"]'
+      line: 'dnsNameservers: ["{{container_ip.stdout}}:53"]'
+    tags:
+      - step3
 
   - name: Restart DNS pod after change
     command: "oc get pods -n kube-dns -o name | xargs oc delete -n kube-dns"
+    tags:
+      - step3
 
   - name: Cluster login info
     debug:
       msg:
         - "Cluster Login info:"
         - "{{ cluster_up  | regex_replace('\\n', '\n') }}"
+    tags:
+      - step2
 
   - name: Fetch config file
     fetch:
-      src: ~/.kube/config
+      src: /openshift.local.clusterup/kube-apiserver/admin.kubeconfig
       dest: ./openshift-config
       flat: yes
     tags:
       - config
       - info
+      - step2
 
   - name: Openshift config file
     debug:
@@ -219,12 +286,13 @@
           Copy it to your $HOME/.config with: \n
           cp openshift-config $HOME/.kube/config \n
            \n
-          Open https://127.0.0.1.nip.io:8443/console to access the console. \n
+          Open https://{{public_hostname}}:8443/console to access the console. \n
            \n
           footloose ssh root@node0"
     tags:
       - config
       - info
+      - step2
 
   handlers:
     - name: restart docker

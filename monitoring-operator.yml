@@ -1,0 +1,50 @@
+---
+- name: Install Monitoring-operator on Openshift in Footloose
+  hosts: all
+  gather_facts: false
+
+  vars:
+    manifest_root_url: 'https://github.com/openshift/cluster-monitoring-operator/raw/v3.11.0/manifests'
+    manifest_dest: '/root/monitoring-operator/'
+
+  pre_tasks:
+
+  tasks:
+
+  - name: Create monitoring project
+    command: "oc create namespace openshift-monitoring"
+
+  - name: Select the project
+    command: "oc project openshift-monitoring"
+
+  - name: Annotate the project
+    command: "oc annotate ns/openshift-monitoring openshift.io/node-selector="
+
+  - name: Label the project
+    command: "oc label ns/openshift-monitoring openshift.io/cluster-monitoring=true"
+
+  - name: Create {{manifest_dest}} dir
+    file:
+      path: '{{manifest_dest}}'
+      state: directory
+      mode: 0755
+
+  - name: Download manifests
+    get_url:
+      url: '{{manifest_root_url}}/{{ item }}'
+      dest: '{{manifest_dest}}'
+    with_items:
+      - cluster-monitoring-operator-role.yaml
+      - cluster-monitoring-operator-role-binding.yaml
+      - cluster-monitoring-config.yaml
+      - secret-etcd-certs.yaml
+      - cluster-monitoring-operator.yaml
+
+  - name: Apply monitoring manifests
+    command: "oc apply -f '{{manifest_dest}}{{ item }}'
+    with_items:
+      - cluster-monitoring-operator-role.yaml
+      - cluster-monitoring-operator-role-binding.yaml
+      - cluster-monitoring-config.yaml
+      - secret-etcd-certs.yaml
+      - cluster-monitoring-operator.yaml
