@@ -56,6 +56,10 @@ To deploy a container machine, install the pre-reqs and start OpenShift, do:
 
 `ansible-playbook main.yml`
 
+You can also deploy the monitoring stack based on CoreOs cluster-monitoring-operator into the the cluster. Just do:
+
+`ansible-playbook monitoring-operator.yml`
+
 To deploy OpenFaas into the cluster, run:
 
 `ansible-playbook openfaas.yml`
