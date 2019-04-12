@@ -254,12 +254,12 @@
       regexp: '^dnsNameservers:'
       line: 'dnsNameservers: ["{{container_ip.stdout}}:53"]'
     tags:
-      - step3
+      - step2
 
   - name: Restart DNS pod after change
     command: "oc get pods -n kube-dns -o name | xargs oc delete -n kube-dns"
     tags:
-      - step3
+      - step2
 
   - name: Cluster login info
     debug:
