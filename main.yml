@@ -258,6 +258,11 @@
 
   - name: Restart DNS pod after change
     command: "oc get pods -n kube-dns -o name | xargs oc delete -n kube-dns"
+    register: task_result
+    until: task_result.rc == 0
+    retries: 10
+    delay: 5
+    ignore_errors: yes
     tags:
       - step2
 
