@@ -44,30 +44,21 @@
     tags:
       - download
 
-  - name: Create cluster-monitoring-operator configmap
-    copy:
-      dest: "{{manifest_dest}}/monitoring-config.yaml"
-      content: |
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          name: cluster-monitoring-config
-          namespace: openshift-monitoring
-        data:
-          config.yaml: |
-            prometheusK8s:
-              replicas: 1
-            alertmanagerMain:
-              replicas: 1
-      mode: 0644
+  - name: Change number of replicas for AlertManager
+    lineinfile:
+      dest: "{{manifest_dest}}/cluster-monitoring-config.yaml"
+      insertafter: "{{item}}"
+      line: "      replicas: 1"
+      firstmatch: yes
+    with_items:
+      - "^.*alertmanagerMain:"
+      - "^.*prometheusK8s:"
     tags:
-      - route
-
+      - edit
 
   - name: Apply monitoring manifests
     command: "oc apply -f '{{manifest_dest}}{{ item }}'"
     with_items:
-      - monitoring-config.yaml
       - cluster-monitoring-operator-role.yaml
       - cluster-monitoring-operator-role-binding.yaml
       - cluster-monitoring-config.yaml
