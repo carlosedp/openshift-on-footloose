@@ -84,6 +84,7 @@ kubectl get pods --all-namespaces
 
 You can deploy any application from the catalog and create routes that will be exposed using [nip.io](http://nip.io/) to avoid fiddling with `/etc/hosts`.
 
+To stop the Openshift, just use `footloose stop`. To restart, you can either do `footloose start && footloose ssh root@node0 /root/oc-up.sh` or re-run the `main.yml` playbook.
 
 ## OpenFaaS Demo
 

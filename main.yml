@@ -45,9 +45,29 @@
       - base
       - step1
 
+
+  - name: Check if container already exists
+    command: footloose show
+    delegate_to: 127.0.0.1
+    register: container_exists
+    tags:
+      - local
+      - base
+      - step1
+
+  - name: Start Footloose container VMs
+    command: footloose start
+    delegate_to: 127.0.0.1
+    when: container_exists.rc == 0
+    tags:
+      - local
+      - base
+      - step1
+
   - name: Create Footloose container VMs
     command: footloose create
     delegate_to: 127.0.0.1
+    when: container_exists.rc == 1
     tags:
       - local
       - base

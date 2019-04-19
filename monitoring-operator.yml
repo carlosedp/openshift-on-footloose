@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    manifest_root_url: 'https://github.com/openshift/cluster-monitoring-operator/raw/v3.11.0/manifests'
+    manifest_root_url: 'https://github.com/openshift/cluster-monitoring-operator/raw/release-3.11/manifests'
     manifest_dest: '/root/monitoring-operator/'
 
   pre_tasks:
@@ -28,6 +28,8 @@
       path: '{{manifest_dest}}'
       state: directory
       mode: 0755
+    tags:
+      - download
 
   - name: Download manifests
     get_url:
@@ -39,10 +41,33 @@
       - cluster-monitoring-config.yaml
       - secret-etcd-certs.yaml
       - cluster-monitoring-operator.yaml
+    tags:
+      - download
+
+  - name: Create cluster-monitoring-operator configmap
+    copy:
+      dest: "{{manifest_dest}}/monitoring-config.yaml"
+      content: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: cluster-monitoring-config
+          namespace: openshift-monitoring
+        data:
+          config.yaml: |
+            prometheusK8s:
+              replicas: 1
+            alertmanagerMain:
+              replicas: 1
+      mode: 0644
+    tags:
+      - route
+
 
   - name: Apply monitoring manifests
-    command: "oc apply -f '{{manifest_dest}}{{ item }}'
+    command: "oc apply -f '{{manifest_dest}}{{ item }}'"
     with_items:
+      - monitoring-config.yaml
       - cluster-monitoring-operator-role.yaml
       - cluster-monitoring-operator-role-binding.yaml
       - cluster-monitoring-config.yaml
