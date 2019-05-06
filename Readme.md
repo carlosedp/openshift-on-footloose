@@ -45,7 +45,7 @@ sudo apt-get update
 sudo apt-get install ansible
 
 # Install Footloose
-curl -Lo footloose https://github.com/weaveworks/footloose/releases/download/0.3.0/footloose-0.3.0-linux-x86_64
+curl -Lo footloose https://github.com/weaveworks/footloose/releases/download/0.4.0/footloose-0.4.0-linux-x86_64
 chmod +x footloose
 sudo mv footloose /usr/local/bin/
 ```
