@@ -47,16 +47,17 @@
 
 
   - name: Check if container already exists
-    command: footloose show
+    shell: "docker ps -a |grep openshift-node0"
     delegate_to: 127.0.0.1
     register: container_exists
+    ignore_errors: true
     tags:
       - local
       - base
       - step1
 
   - name: Start Footloose container VMs
-    command: footloose start
+    shell: footloose start
     delegate_to: 127.0.0.1
     when: container_exists.rc == 0
     tags:
@@ -65,7 +66,7 @@
       - step1
 
   - name: Create Footloose container VMs
-    command: footloose create
+    shell: footloose create
     delegate_to: 127.0.0.1
     when: container_exists.rc == 1
     tags:
