@@ -25,6 +25,7 @@ brew cask install docker
 open /Applications/Docker.app
 
 # Install Footloose, Ansible and Openshift/Kubernetes CLI
+brew tap hudochenkov/sshpass # Required by Ansible to connect using SSH with passwords
 brew install ansible sshpass kubernetes-cli openshift-cli
 brew tap weaveworks/tap
 brew install weaveworks/tap/footloose
